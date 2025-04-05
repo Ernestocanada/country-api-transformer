@@ -8,27 +8,23 @@ app.get("/", async (req, res) => {
     let allCountries = {};
     let offset = 0;
     const limit = 100;
-    let hasMore = true;
+    let total = null;
 
-    while (hasMore) {
+    do {
       const url = `https://api.first.org/data/v1/countries?limit=${limit}&offset=${offset}`;
       const response = await fetch(url);
       const data = await response.json();
 
-      // Merge new data into allCountries
-      allCountries = { ...allCountries, ...data.data };
-
-      // If fewer than limit, we're done
-      if (Object.keys(data.data).length < limit) {
-        hasMore = false;
-      } else {
-        offset += limit;
+      if (!total && data.total) {
+        total = data.total;
       }
-    }
 
-    // Transform into a list
+      allCountries = { ...allCountries, ...data.data };
+      offset += limit;
+    } while (offset < total);
+
     const transformed = Object.entries(allCountries).map(([code, value]) => ({
-      code: code,
+      code,
       country: value.country,
       region: value.region
     }));
