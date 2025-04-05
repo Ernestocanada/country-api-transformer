@@ -5,10 +5,29 @@ const port = process.env.PORT || 3000;
 
 app.get("/", async (req, res) => {
   try {
-    const response = await fetch("https://api.first.org/data/v1/countries");
-    const data = await response.json();
+    let allCountries = {};
+    let offset = 0;
+    const limit = 100;
+    let hasMore = true;
 
-    const transformed = Object.entries(data.data).map(([code, value]) => ({
+    while (hasMore) {
+      const url = `https://api.first.org/data/v1/countries?limit=${limit}&offset=${offset}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // Merge new data into allCountries
+      allCountries = { ...allCountries, ...data.data };
+
+      // If fewer than limit, we're done
+      if (Object.keys(data.data).length < limit) {
+        hasMore = false;
+      } else {
+        offset += limit;
+      }
+    }
+
+    // Transform into a list
+    const transformed = Object.entries(allCountries).map(([code, value]) => ({
       code: code,
       country: value.country,
       region: value.region
@@ -16,6 +35,7 @@ app.get("/", async (req, res) => {
 
     res.json(transformed);
   } catch (error) {
+    console.error("Error fetching countries:", error.message);
     res.status(500).json({ error: "Something went wrong", details: error.message });
   }
 });
